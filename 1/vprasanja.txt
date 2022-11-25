@@ -1,0 +1,32 @@
+1.Why would you use different color maps?
+
+-Odvisno od tega kaj hočemo predstaviti, nekateri color maps so boljsi za
+prikazovanje barv, drugi za intensiteto, eni imajo konstanten brightness
+(Na razlicnih color mapsih so bol razvidne razlicne stvari)
+
+
+2.How is inverting a grayscale value defined for uint8 ?
+
+-Uint8 grayscale slike lahko invertiramo tako, da vrednost vsakega pixla odštejemo od max vrednosti, ki je 255.
+
+
+
+3.The histograms are usually normalized by dividing the result by the
+sum of all cells. Why is that?
+
+-Da lažje primerjamo histograme različno velikih slik, ne gledamo števila pixlov temveč deleže.
+
+
+4.Based on the results, which order of erosion and dilation operations
+produces opening and which closing?
+
+- Opening: Erosion, nato Dilation | Closing: Dilation, nato Erosion
+
+
+
+5.Why is the background included in the mask and not the object? How
+would you fix that in general? (just inverting the mask if necessary doesn’t count)
+
+-Zato, ker je ozadje svetlejše kot je orel, zato naš način ,kjer vse pixle z vrednostjo manjso od thresholda na tisti sliki deluje drugače kot bi hoteli
+ Lahko bi pogledali katerih pixlov je več (na splošno ali ob robovih) 
+ in na podlagi tega določili kaj je ospredje in kaj ozadje (tisto kar je več je najverjetneje ozadje)

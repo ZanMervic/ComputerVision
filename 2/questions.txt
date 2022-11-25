@@ -1,0 +1,49 @@
+-Which image (object_02_1.png or object_03_1.png) is more similar
+to image object_01_1.png considering the L2 distance? How about the other three
+distances? We can see that all three histograms contain a strongly expressed component (one bin has a much higher value than the others). Which color does this
+bin represent?
+
+->object 3 is more similar to object 1 considering the L2 distance (and all other distances)
+The bin represents the color black
+
+
+-Which distance is in your opinion best suited for image retrieval? How
+does the retrieved sequence change if you use a different number of bins? Is the
+execution time affected by the number of bins?
+
+->with different number of bins you get less precise distances
+if we have more bins the execution time goes up
+
+
+-Can you recognize the shape of the kernel? What is the sum of the
+elements in the kernel? How does the kernel affect the signal?
+
+->The kernel is a gaussian (because it's the same as ours), the sum of the elements is very close to 1. It removes high frequency signals "smooths the singals".
+
+
+The figure below shows two kernels (a) and (b) as well as signal (c).
+Sketch (do not focus on exact proportions of your drawing but rather on the understanding of what you are doing) the resulting convolved signal of the given input
+signal and each kernel.
+
+
+
+-Which noise is better removed using the Gaussian filter?
+
+-> Gaussian noise
+
+
+-Which filter performs better at this specific task (removing salt & pepper noise)? In comparison to
+Gaussian filter that can be applied multiple times in any order, does the order
+matter in case of median filter? What is the name of filters like this ?
+
+-> The median filter is better suited for this task, because it's not affected by outliers.
+   Median filter in a non-linear filter (the output is not a linear function of it's input), that is why the order matters (still not 100% why).
+
+
+-What is the computational complexity of the Gaussian filter operation?
+How about the median filter? What does it depend on? Describe the computational
+complexity using the O(·) notation (you can assume n log n complexity for sorting).
+
+-> n = width and height of the image, w is the witdh and height of the kernel
+Gaussian : O(n^2 * w^2) for 2d convolution and O(2*n^2*w) = O(n^2*w) for two 1d convolutions
+Median : O(n^2 * w^2logw^2) for median filter
