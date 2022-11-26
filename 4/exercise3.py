@@ -120,11 +120,93 @@ def task_b():
 
     plt.figure(figsize=(10,6))
     plt.subplot(2,1,1)
-    plt.imshow(I2)
+    plt.imshow(I2, cmap="gray")
     plt.title("newyork_b")
     plt.subplot(2,1,2)
-    plt.imshow(plane)
+    plt.imshow(plane, cmap="gray")
     plt.title("transformed newyork_a")
     plt.show()
 
 #-------------------------------------------------------------------------------------------------------------------
+#Help on discord: https://discord.com/channels/435483352011767820/626489670787923972/1046011888498114621
+
+#The idea here was to "transform" each pixel from the original image to the warped image using the H (homography) matrix
+#But because after the dot product between H and our pixel coordinates we get a float and need to round it to get a matrix index
+#Multiple pixels sometimes get mapped to the same index in the new matrix (leaving some pixels missing -> artifacts)
+
+#My idea was that for every black pixel in the new image we would inverse the coordinates and fetch the value from the original image
+#to fill in the black artifacts (did not work very well, but i could see a cleaner image in the corners)
+#Thats when i got the idea to delete the first part of the algorythm and just use the "reverse homography"
+def warpPerspectiveAttempt1(I, H):
+    Iwarp = np.zeros_like(I) #Here we will store the result
+    inv_H = np.linalg.inv(H) #We inverse the H matrix because otherwise it did not work
+    #For each pixel in I we do:
+    for (x, y), value in np.ndenumerate(I):
+        x_r = [x, y, 1] #Transform the pixel coordinates to homogenous form
+        x_t = inv_H.dot(x_r) #Compute the corresponding x_t using the homography matrix
+        x_t = np.round(x_t / x_t[-1]).astype(int) #Transform the x_t back to 2D space
+        #Because we are rotating the image not all pixels will be placed in the new image (some will get cut off)
+        if(x_t[0] >= 0 and x_t[0] < Iwarp.shape[1] and x_t[1] >= 0 and x_t[1] < Iwarp.shape[0]):
+            Iwarp[x_t[0], x_t[1]] = value
+
+    #The result currently has many artifacts
+    #For every black pixel in the new image we do a reverse homography and fetch the value of the real image
+    for (x,y), value in np.ndenumerate(Iwarp):
+        if(value != 0):
+            continue
+        x_r = [x, y, 1] #Transform the pixel coordinates to homogenous form
+        x_t = inv_H.dot(x_r) #Compute the corresponding x_t using the homography matrix
+        x_t = np.round(x_t / x_t[-1]).astype(int) #Transform the x_t back to 2D space
+        #Because we are rotating the image not all pixels will be placed in the new image (some will get cut off)
+        if(x_t[0] >= 0 and x_t[0] < Iwarp.shape[1] and x_t[1] >= 0 and x_t[1] < Iwarp.shape[0]):
+            Iwarp[y, x] = I[x_t[1], x_t[0]]
+        
+
+
+    return Iwarp
+
+#Instead of transforming the reference image coordinates and copying the values to the new image (and loosing some pixels because of rounding floats)
+#we iterate through each pixel in the new image, do a inverse transform to get the reference image coordinates and fetching the corresponding value
+#We can still get some distortion (nearby pixels fetch the same reference image value) but we don't have any black pixels
+def inverseWrapPerspective(I, H):
+    Iwarp = np.zeros_like(I) #Here we will store the result
+    inv_H = np.linalg.inv(H) #We inverse the H matrix because otherwise it did not work (tried to transpose it, did not work)
+    #For each pixel in the new image we will transform the coordinates to the reference image (using inv(H))
+    #And store the value of the reference image into our new image
+    for y in range(0, Iwarp.shape[0]):
+        for x in range(0, Iwarp.shape[1]):
+            new_homog_coords = [x, y, 1] #Transform the pixel coordinates to homogenous form
+            ref_homog_coords = inv_H.dot(new_homog_coords) #Compute the corresponding ref_homog_coords using the homography matrix
+            ref_homog_coords = np.round(ref_homog_coords / ref_homog_coords[-1]).astype(int) #Transform the ref_homog_coords back to 2D space
+            #Because we are rotating the image not all pixels will be placed in the reference image (some will get cut off)
+            if(ref_homog_coords[0] >= 0 and ref_homog_coords[0] < Iwarp.shape[1] and ref_homog_coords[1] >= 0 and ref_homog_coords[1] < Iwarp.shape[0]):
+                Iwarp[y, x] = I[ref_homog_coords[1], ref_homog_coords[0]]
+
+    return Iwarp
+
+
+def task_d():
+    I1 = np.asarray(Image.open("data/newyork/newyork_a.jpg").convert("L")).astype(np.float64) / 255
+    I2 = np.asarray(Image.open("data/newyork/newyork_b.jpg").convert("L")).astype(np.float64) / 255
+
+    points1, points2 = find_matches(I1, I2, 1)
+    correspondences = np.hstack((points1,points2))
+    H = ransac(correspondences, 4, 2, 100)
+
+    plane1 = warpPerspectiveAttempt1(I1, H)
+    plane2 = inverseWrapPerspective(I1, H)
+
+
+    plt.figure(figsize=(10,6))
+    plt.subplot(2,3,2)
+    plt.imshow(I2, cmap="gray")
+    plt.title("newyork_b")
+    plt.subplot(2,3,4)
+    plt.imshow(plane1, cmap="gray")
+    plt.title("transformed newyork_a - attempt 1")
+    plt.subplot(2,3,6)
+    plt.imshow(plane2, cmap="gray")
+    plt.title("transformed newyork_a - inverse")
+    plt.show()
+
+task_d()
