@@ -38,8 +38,8 @@ def derivatives(I, sigma):
     Ix = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
     Iy = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
     Ixx = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
-    Ixy = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
     Iyy = cv2.filter2D(src=cv2.filter2D(src=Iy, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
+    Ixy = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
     return Ix,Iy,Ixx,Iyy,Ixy
 
 
@@ -79,16 +79,19 @@ def task_a(image="./data/graf/graf_a.jpg"):
 
 #TASK B-------------------------------------------------------------------------------------------------------------------
 
-def harris_points(I, sigma, alpha = 0.06, thresh = 0.01):
+#BAJE MI MANJKA EN MINUS PR KONVOLUCIJAH ?
+
+
+def harris_points(I, sigma, alpha = 0.06, thresh = 0.000001):
     Ix, Iy, _, _, Ixy = derivatives(I,sigma)
     G = a4_utils.gauss(sigma*1.6)
     #Again, following the formula, C is a 2x2 matrix which elements are Cx, Cy and 2x Cxy
     Cx = cv2.filter2D(src=cv2.filter2D(src=Ix**2, ddepth=-1, kernel=G), ddepth=-1, kernel=G.T)
     Cy = cv2.filter2D(src=cv2.filter2D(src=Iy**2, ddepth=-1, kernel=G), ddepth=-1, kernel=G.T)
-    Cxy = cv2.filter2D(src=cv2.filter2D(src=Ixy, ddepth=-1, kernel=G), ddepth=-1, kernel=G.T)
+    Cxy = cv2.filter2D(src=cv2.filter2D(src=Ix*Iy, ddepth=-1, kernel=G), ddepth=-1, kernel=G.T)
 
     #Then we calculate the matrix determinant and trace (basic linear algebra)
-    detC = Cx * Cy - 2 * Cxy
+    detC = Cx * Cy - Cxy**2
     traceC = Cx + Cy
 
     #And again follow the formula and do a non_max_supp
@@ -119,4 +122,4 @@ def task_b(image="./data/graf/graf_a.jpg"):
 
 
 # task_a()
-# task_b()
+task_b()
