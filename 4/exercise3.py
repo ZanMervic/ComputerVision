@@ -8,6 +8,36 @@ from PIL import Image
 from exercise2 import find_matches
 
 
+
+#--------------------------------------------------------------------------------------------------------------------------
+def display_matches_copy(I1, pts1, I2, pts2):
+	"""
+	Displays matches between images.
+
+	I1, I2: Image in grayscale.
+	pts1, pts2: Nx2 arrays of coordinates of feature points for each image (first columnt is x, second is y coordinates)
+	"""
+
+	assert I1.shape[0] == I2.shape[0] and I1.shape[1] == I2.shape[1], "Images need to be of the same size."
+
+	I = np.hstack((I1, I2))
+	w = I1.shape[1]
+	plt.imshow(I, cmap='gray')
+
+	for p1, p2 in zip(pts1, pts2):
+		x1 = p1[0]
+		y1 = p1[1]
+		x2 = p2[0]
+		y2 = p2[1]
+		plt.plot(x1, y1, 'bo', markersize=3)
+		plt.plot(x2 + w, y2, 'bo', markersize=3)
+		plt.plot([x1, x2 + w], [y1, y2], 'r', linewidth=.8)
+
+#-------------------------------------------------------------------------------------------------------------------------
+
+
+
+
 #TASK A-------------------------------------------------------------------------------------------------------------------
 
 #As an input we get a arrays of coordinates of correspondences
@@ -42,8 +72,6 @@ def task_a():
         #Store correspondences of the first image into points1 and second into points2
         points1 = correspondences[:,:2]
         points2 = correspondences[:,2:]
-        #Displaying the matching points using the given methon
-        a4_utils.display_matches(I1, points1, I2, points2)
 
         #Calculating the homography matrix (it tells us the rotation of the image based on the correspondences ?)
         H = estimate_homography(correspondences)
@@ -51,11 +79,20 @@ def task_a():
         plane = cv2.warpPerspective(I1, H, dsize=I1.shape)
 
         plt.figure(figsize=(10,6))
-        plt.subplot(2,1,1)
-        plt.imshow(I1)
+        plt.subplot(2,3,1)
+        plt.imshow(I1, cmap="gray")
         plt.title("Original")
-        plt.subplot(2,1,2)
-        plt.imshow(plane)
+
+        plt.subplot(2,3,2)
+        #Displaying the matching points using the given methon
+        display_matches_copy(I1, points1, I2, points2)
+        plt.title("Matches")
+
+        plt.subplot(2,3,3)
+        plt.imshow(I2, cmap="gray")
+        plt.title("Second")
+        plt.subplot(2,3,5)
+        plt.imshow(plane, cmap="gray")
         plt.title("Wrap")
         plt.show()
 
@@ -110,8 +147,6 @@ def task_b():
     I2 = np.asarray(Image.open("data/newyork/newyork_b.jpg").convert("L")).astype(np.float64) / 255
 
     points1, points2 = find_matches(I1, I2, 1)
-    a4_utils.display_matches(I1, points1, I2, points2)
-
 
     correspondences = np.hstack((points1,points2))
     H = ransac(correspondences, 4, 2, 100)
@@ -119,15 +154,77 @@ def task_b():
     plane = cv2.warpPerspective(I1, H, dsize=I1.shape)
 
     plt.figure(figsize=(10,6))
-    plt.subplot(2,1,1)
+    plt.subplot(2,3,1)
+    plt.imshow(I1, cmap="gray")
+    plt.title("Original")
+    plt.subplot(2,3,2)
+    display_matches_copy(I1, points1, I2, points2)
+    plt.title("Matches")
+    plt.subplot(2,3,3)
     plt.imshow(I2, cmap="gray")
     plt.title("newyork_b")
-    plt.subplot(2,1,2)
+    plt.subplot(2,3,5)
+    plt.imshow(plane, cmap="gray")
+    plt.title("transformed newyork_a")
+    plt.show()
+
+    # plt.imshow(I2)
+    # plt.imshow(plane, alpha=0.5)
+    # plt.show()
+
+#-------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+#TASK C-------------------------------------------------------------------------------------------------------------------
+
+#The goal here is to calculate how many iterations are necesary for there to be selected an inlying model with
+#s parameters atleast once with probability p 
+#Lectures 4, slide 48
+#Equation:  N = log(1-p)/log(1-(1-e)^s)
+#number of inliers = 29, number of all correspondences = 41 -> e = 30%
+#---> N = log(1-0.99)/log(1-(1-0.3)^4) = 17
+
+def task_c():
+    I1 = np.asarray(Image.open("data/newyork/newyork_a.jpg").convert("L")).astype(np.float64) / 255
+    I2 = np.asarray(Image.open("data/newyork/newyork_b.jpg").convert("L")).astype(np.float64) / 255
+
+    points1, points2 = find_matches(I1, I2, 1)
+
+    correspondences = np.hstack((points1,points2))
+    H = ransac(correspondences, 4, 2, 17)
+
+    plane = cv2.warpPerspective(I1, H, dsize=I1.shape)
+
+    plt.figure(figsize=(10,6))
+    plt.subplot(2,3,1)
+    plt.imshow(I1, cmap="gray")
+    plt.title("Original")
+    plt.subplot(2,3,2)
+    display_matches_copy(I1, points1, I2, points2)
+    plt.title("Matches")
+    plt.subplot(2,3,3)
+    plt.imshow(I2, cmap="gray")
+    plt.title("newyork_b")
+    plt.subplot(2,3,5)
     plt.imshow(plane, cmap="gray")
     plt.title("transformed newyork_a")
     plt.show()
 
 #-------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+#TASK D-------------------------------------------------------------------------------------------------------------------
 #Help on discord: https://discord.com/channels/435483352011767820/626489670787923972/1046011888498114621
 
 #The idea here was to "transform" each pixel from the original image to the warped image using the H (homography) matrix
@@ -209,4 +306,9 @@ def task_d():
     plt.title("transformed newyork_a - inverse")
     plt.show()
 
-task_d()
+#-------------------------------------------------------------------------------------------------------------------
+
+# task_a()
+# task_b()
+# task_c()
+# task_d()

@@ -122,4 +122,4 @@ def task_b(image="./data/graf/graf_a.jpg"):
 
 
 # task_a()
-task_b()
+# task_b()
