@@ -24,19 +24,19 @@ def fundamental_matrix(pts1, pts2):
     A = np.array(A)
 
     #Compute the SVD of A https://www.youtube.com/watch?v=nbBvuuNVfco
-    U, D, V = np.linalg.svd(A)
+    U, D, VT = np.linalg.svd(A)
 
-    #The last column of V (eigenvector v9) is the solution to the equation Av = 0
+    #The last column of V (last row of V.T) (eigenvector v9) is the solution to the equation Av = 0
     #Transforming the last eigenvector v9 in a 3 × 3 fundamental matrix F
-    F = V[-1].reshape(3,3)
+    F = VT[-1].reshape(3,3)
 
     #Enforce the rank 2 constraint
     #Decomposing the fundamental matrix F into UDV^T
-    U, D, V = np.linalg.svd(F)
+    U, D, VT = np.linalg.svd(F)
     #Setting the smallest eigenvalue to zero
     D[2] = 0
     #Reconstructing the fundamental matrix F
-    F = np.dot(U, np.dot(np.diag(D), V))
+    F = np.dot(U, np.dot(np.diag(D), VT))
 
     #Transforming the fundamental matrix F back to the original coordinate system
     F = np.dot(T2.T, np.dot(F, T1))
