@@ -152,52 +152,29 @@ def task_c():
 #TASK D--------------------------------------------------------------------------------------------------------------
 #Perform fully automatic fundamental matrix estimation on a pair of images
 
-
-def nonmaxima_suppression_box(I, thresh, size=1):
-    #The idea is similar to the 2d median from assignment2
-    result = np.zeros_like(I) #Create a 0s array 
-    I = np.pad(I, size) #Pad I with 1 layer of 0s
-    for j in range(result.shape[0]):
-        for i in range(result.shape[1]):
-            if(I[j+size,i+size] < thresh):
-                continue
-            #If the pixel is higher than 0 we compare it to the pixels around it
-            temp = np.copy(I[j:j+(2*size+1),i:i+(2*size+1)])
-            temp[size,size] = 0
-            max_neighbor = np.max(temp)
-            if(I[j+size,i+size] > max_neighbor):
-                #If the pixel is higher than all of it's neighbors we keep it
-                result[j,i] = I[j+size,i+size]
-            elif(I[j+size,i+size] == max_neighbor):
-                I[j+size,i+size] = 0
-
-    return result
-
-
-#A function that will give us all first and second image derivatives (we need them often)
-def derivatives(I, sigma):
-    G = a4_utils.gauss(sigma)
-    D = a4_utils.gaussdx(sigma)
-    Ix = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
-    Iy = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
-    Ixx = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
-    Iyy = cv2.filter2D(src=cv2.filter2D(src=Iy, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
-    Ixy = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
-    return Ix,Iy,Ixx,Iyy,Ixy
-
-
-
-
-def hessian_points(I, sigma, thresh=0.004):
-    _, _, Ixx, Iyy, Ixy = derivatives(I,sigma)
-    #Just following the formula
-    H = Ixx * Iyy - Ixy**2
-    #We then do a non_max_supp and thresholding on it
-    Hmax = nonmaxima_suppression_box(H, thresh)
-    #And we return a touple (H is just for displaying), (np.nonzero(Hmax) will give us the coords of feature points)
-    return H, np.nonzero(Hmax)
-
-
+def fundamental_ransac(correspondences, samples = 8, error = 2, iterations = 100):
+    #Here we will sotre the largest number of inliers and the corresponding model
+    mostInliers = []
+    bestF = []
+    #We start the ransac loop
+    for i in range(0, iterations):
+        #Select 4 random correpondences
+        np.random.shuffle(correspondences)
+        randCorr = correspondences[:samples]
+        #Calculate the F for the random correspondences
+        pts1 = randCorr[:,0:2]
+        pts2 = randCorr[:,2:4]
+        F = fundamental_matrix(pts1, pts2)
+        #Calculate the error for all the correspondences
+        inliers = []
+        for corr in correspondences:
+            if(reprojection_error(F, corr[0:2], corr[2:4]) < error):
+                inliers.append(corr)
+        #If we have more inliers than the previous best model, we update the best model
+        if(len(inliers) > len(mostInliers)):
+            mostInliers = inliers
+            bestF = F
+    return bestF, mostInliers
 
 
 def find_correspondences_symetric_snd_most_similar(desc1, desc2):
@@ -235,71 +212,60 @@ def find_correspondences_symetric_snd_most_similar(desc1, desc2):
     return pairs
 
 
-def find_matches(I1, I2, sigma, radius=30, descSigma = 2):
-
-    _, fPoints1 = hessian_points(I1, sigma)
-    _, fPoints2 = hessian_points(I2, sigma)
-
-    #We get the descriptors from out feature points
-    desc1 = a4_utils.simple_descriptors(I1, fPoints1[0], fPoints1[1], radius=radius, sigma=descSigma)
-    desc2 = a4_utils.simple_descriptors(I2, fPoints2[0], fPoints2[1], radius=radius, sigma=descSigma)
-
-    #We find symetric correspondences (desc1 matched with desc2 and the other way round)
-    correspondences = find_correspondences_symetric_snd_most_similar(desc1, desc2)
-
-    points1 = []
-    points2 = []
-    for x1, x2 in correspondences:
-        points1.append([fPoints1[1][x1], fPoints1[0][x1]])
-        points2.append([fPoints2[1][x2], fPoints2[0][x2]])
-
-    #We return the matching points for each image
-    return points1, points2
-
-def fundamental_ransac(correspondences, samples = 8, error = 2, iterations = 100):
-    #Here we will sotre the largest number of inliers and the corresponding model
-    mostInliers = []
-    bestF = []
-    #We start the ransac loop
-    for i in range(0, iterations):
-        #Select 4 random correpondences
-        np.random.shuffle(correspondences)
-        randCorr = correspondences[:samples]
-        #Calculate the F for the random correspondences
-        pts1 = randCorr[:,0:2]
-        pts2 = randCorr[:,2:4]
-        F = fundamental_matrix(pts1, pts2)
-        #Calculate the error for all the correspondences
-        inliers = []
-        for corr in correspondences:
-            if(reprojection_error(F, corr[0:2], corr[2:4]) < error):
-                inliers.append(corr)
-        #If we have more inliers than the previous best model, we update the best model
-        if(len(inliers) > len(mostInliers)):
-            mostInliers = inliers
-            bestF = F
-    return bestF, mostInliers
-
 
 
 def task_d():
     #Load the images
-    I1 = np.asarray(Image.open("data\desk\DSC02638.JPG").convert("L")).astype(np.float64) / 255
-    I2 = np.asarray(Image.open("data\desk\DSC02639.JPG").convert("L")).astype(np.float64) / 255
+    I1 = cv2.cvtColor(cv2.imread("data\desk\DSC02638.JPG"), cv2.COLOR_BGR2GRAY)
+    I2 = cv2.cvtColor(cv2.imread("data\desk\DSC02641.JPG"), cv2.COLOR_BGR2GRAY)
 
-    #Detect the corresponding points
-    pts1, pts2 = find_matches(I1, I2, 1)
+    #Find correspondences using cv2
+    orb = cv2.ORB_create()
+
+    kp1 = orb.detect(I1, None)
+    kp2 = orb.detect(I2, None)
+
+    kp1, des1 = orb.compute(I1, kp1)
+    kp2, des2 = orb.compute(I2, kp2)
+
+    """
+    Checking the keypoints
+    cv2.drawKeypoints(image1, kp1, img1, color=(0, 255, 0), flags=0)
+    plt.imshow(img1), plt.show()
+
+    cv2.drawKeypoints(image2, kp2, img2,color=(0, 255, 0), flags=0)
+    plt.imshow(img2), plt.show()
+    """
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    # Match descriptors.
+    matches = bf.match(des1, des2)
+
+    # Sort them in the order of their distance.
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    """
+    # Draw first 10 matches.
+    img3 = np.array([])
+    img3 = cv2.drawMatches(I1, kp1, I2, kp2, matches[:30], img3)
+
+    plt.imshow(img3), plt.show()
+    """
+
+    #Get the pixel coordinates for each image
+    pts1 = np.asarray([kp1[mat.queryIdx].pt for mat in matches[:60]])
+    pts2 = np.asarray([kp2[mat.trainIdx].pt for mat in matches[:60]])
+
+    a4_utils.display_matches(I1, pts1, I2, pts2)
+
     correspondences = np.hstack((pts1,pts2))
-
-    #Perform RANSAC to find the best fundamental matrix
-    F, bestCorr = fundamental_ransac(correspondences)
     
-    bestCorr = np.asarray(bestCorr)
-    pts1 = bestCorr[:,0:2]
-    pts2 = bestCorr[:,2:4]
-    #Transfrom the best points into homogeneous coordinates
-    h_pts1 = np.pad(pts1, ((0,0),(0,1)))
-    h_pts2 = np.pad(pts2, ((0,0),(0,1)))
+    F, _ = fundamental_ransac(correspondences)
+
+    #Transfrom the points into homogeneous coordinates
+    h_pts1 = np.hstack((pts1, np.ones((pts1.shape[0],1))))
+    h_pts2 = np.hstack((pts2, np.ones((pts2.shape[0],1))))
 
     #Compute the epipolar lines for each point
     L2 = []
@@ -327,6 +293,10 @@ def task_d():
     plt.plot(pts2[:,0], pts2[:,1], 'r.', markersize=10)
 
     plt.show()
+
+
+
+    
 
 
 
