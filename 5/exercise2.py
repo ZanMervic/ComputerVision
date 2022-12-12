@@ -1,9 +1,9 @@
 from matplotlib import pyplot as plt
-import cv2
-import a5_utils;
+import a5_utils
+import a4_utils
 import numpy as np
-import math
 from PIL import Image
+import cv2
 
 
 #Task B --------------------------------------------------------------------------------------------------------------
@@ -45,9 +45,9 @@ def fundamental_matrix(pts1, pts2):
 
     
 def task_b():
-    correspondences = np.loadtxt("5\data\epipolar\house_points.txt")
-    I1 = np.asarray(Image.open("5\data\epipolar\house1.jpg").convert("L")).astype(np.float64) / 255
-    I2 = np.asarray(Image.open("5\data\epipolar\house2.jpg").convert("L")).astype(np.float64) / 255
+    correspondences = np.loadtxt("data\epipolar\house_points.txt")
+    I1 = np.asarray(Image.open("data\epipolar\house1.jpg").convert("L")).astype(np.float64) / 255
+    I2 = np.asarray(Image.open("data\epipolar\house2.jpg").convert("L")).astype(np.float64) / 255
 
     #Store correspondences of the first image into pts1 and second into pts2
     pts1 = correspondences[:,:2]
@@ -116,9 +116,9 @@ def reprojection_error(F, point1, point2):
 
 
 def task_c():
-    correspondences = np.loadtxt("5\data\epipolar\house_points.txt")
-    I1 = np.asarray(Image.open("5\data\epipolar\house1.jpg").convert("L")).astype(np.float64) / 255
-    I2 = np.asarray(Image.open("5\data\epipolar\house2.jpg").convert("L")).astype(np.float64) / 255
+    correspondences = np.loadtxt("data\epipolar\house_points.txt")
+    I1 = np.asarray(Image.open("data\epipolar\house1.jpg").convert("L")).astype(np.float64) / 255
+    I2 = np.asarray(Image.open("data\epipolar\house2.jpg").convert("L")).astype(np.float64) / 255
 
     #Store correspondences of the first image into pts1 and second into pts2
     pts1 = correspondences[:,:2]
@@ -141,5 +141,197 @@ def task_c():
 #---------------------------------------------------------------------------------------------------------------------
 
 
+
+
+
+
+
+
+
+
+#TASK D--------------------------------------------------------------------------------------------------------------
+#Perform fully automatic fundamental matrix estimation on a pair of images
+
+
+def nonmaxima_suppression_box(I, thresh, size=1):
+    #The idea is similar to the 2d median from assignment2
+    result = np.zeros_like(I) #Create a 0s array 
+    I = np.pad(I, size) #Pad I with 1 layer of 0s
+    for j in range(result.shape[0]):
+        for i in range(result.shape[1]):
+            if(I[j+size,i+size] < thresh):
+                continue
+            #If the pixel is higher than 0 we compare it to the pixels around it
+            temp = np.copy(I[j:j+(2*size+1),i:i+(2*size+1)])
+            temp[size,size] = 0
+            max_neighbor = np.max(temp)
+            if(I[j+size,i+size] > max_neighbor):
+                #If the pixel is higher than all of it's neighbors we keep it
+                result[j,i] = I[j+size,i+size]
+            elif(I[j+size,i+size] == max_neighbor):
+                I[j+size,i+size] = 0
+
+    return result
+
+
+#A function that will give us all first and second image derivatives (we need them often)
+def derivatives(I, sigma):
+    G = a4_utils.gauss(sigma)
+    D = a4_utils.gaussdx(sigma)
+    Ix = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
+    Iy = cv2.filter2D(src=cv2.filter2D(src=I, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
+    Ixx = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G.T), ddepth=-1, kernel=D)
+    Iyy = cv2.filter2D(src=cv2.filter2D(src=Iy, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
+    Ixy = cv2.filter2D(src=cv2.filter2D(src=Ix, ddepth=-1, kernel=G), ddepth=-1, kernel=D.T)
+    return Ix,Iy,Ixx,Iyy,Ixy
+
+
+
+
+def hessian_points(I, sigma, thresh=0.004):
+    _, _, Ixx, Iyy, Ixy = derivatives(I,sigma)
+    #Just following the formula
+    H = Ixx * Iyy - Ixy**2
+    #We then do a non_max_supp and thresholding on it
+    Hmax = nonmaxima_suppression_box(H, thresh)
+    #And we return a touple (H is just for displaying), (np.nonzero(Hmax) will give us the coords of feature points)
+    return H, np.nonzero(Hmax)
+
+
+
+
+def find_correspondences_symetric_snd_most_similar(desc1, desc2):
+    #For each descriptor from the first image we...
+    firstPairs = []
+    for i,desc in enumerate(desc1):
+        #calculate the hellinger distance between it and all descriptors from the second image
+        #(axis=1 tells the sum function to only sum elements on the axis 1 -> gives us a 1d array of sums -> we get an array of distances and not just 1 distance)
+        dist = np.sqrt(np.sum((np.sqrt(desc) - np.sqrt(desc2))**2, axis=1) / 2)
+        #we get the 2 smallest distances of descriptors (2 most similar descriptors)
+        fst_min_dist, snd_min_dist = np.partition(dist, 1)[:2]
+        #We check if the ration of these 2 distances is less than 0.8 (the smaller the ratio, the more distinctive the key-point is, which is what we want)
+        if(fst_min_dist/snd_min_dist < 0.8):
+            #we store the indexes of dest1 and dest2 descriptors whose distance was the smallest
+            firstPairs.append([i,np.where(dist == dist.min())[0][0]])
+
+    #Same for the second image we ...
+    secondPairs = []
+    for i,desc in enumerate(desc2):
+        #calculate the hellinger distance between it and all descriptors from the first image
+        #(axis=1 tells the sum function to only sum elements on the axis 1 -> gives us a 1d array of sums -> we get an array of distances and not just 1 distance)
+        dist = np.sqrt(np.sum((np.sqrt(desc) - np.sqrt(desc1))**2, axis=1) / 2)
+        #we get the 2 smallest distances of descriptors (2 most similar descriptors)
+        fst_min_dist, snd_min_dist = np.partition(dist, 1)[:2]
+        #We check if the ration of these 2 distances is less than 0.8 (the smaller the ratio, the more distinctive the key-point is, which is what we want)
+        if(fst_min_dist/snd_min_dist < 0.8):
+            #we store the indexes of dest1 and dest2 descriptors whose distance was the smallest
+            secondPairs.append([i,np.where(dist == dist.min())[0][0]])
+
+    #We now have pairs from first and second image
+    firstPairs = np.asarray(firstPairs)
+    secondPairs = np.flip(secondPairs, axis=1)
+    #We convert these arrays to sets, and keep only the matching pairs
+    pairs = np.array([x for x in set(tuple(x) for x in firstPairs) & set(tuple(x) for x in secondPairs)])
+    return pairs
+
+
+def find_matches(I1, I2, sigma, radius=30, descSigma = 2):
+
+    _, fPoints1 = hessian_points(I1, sigma)
+    _, fPoints2 = hessian_points(I2, sigma)
+
+    #We get the descriptors from out feature points
+    desc1 = a4_utils.simple_descriptors(I1, fPoints1[0], fPoints1[1], radius=radius, sigma=descSigma)
+    desc2 = a4_utils.simple_descriptors(I2, fPoints2[0], fPoints2[1], radius=radius, sigma=descSigma)
+
+    #We find symetric correspondences (desc1 matched with desc2 and the other way round)
+    correspondences = find_correspondences_symetric_snd_most_similar(desc1, desc2)
+
+    points1 = []
+    points2 = []
+    for x1, x2 in correspondences:
+        points1.append([fPoints1[1][x1], fPoints1[0][x1]])
+        points2.append([fPoints2[1][x2], fPoints2[0][x2]])
+
+    #We return the matching points for each image
+    return points1, points2
+
+def fundamental_ransac(correspondences, samples = 8, error = 2, iterations = 100):
+    #Here we will sotre the largest number of inliers and the corresponding model
+    mostInliers = []
+    bestF = []
+    #We start the ransac loop
+    for i in range(0, iterations):
+        #Select 4 random correpondences
+        np.random.shuffle(correspondences)
+        randCorr = correspondences[:samples]
+        #Calculate the F for the random correspondences
+        pts1 = randCorr[:,0:2]
+        pts2 = randCorr[:,2:4]
+        F = fundamental_matrix(pts1, pts2)
+        #Calculate the error for all the correspondences
+        inliers = []
+        for corr in correspondences:
+            if(reprojection_error(F, corr[0:2], corr[2:4]) < error):
+                inliers.append(corr)
+        #If we have more inliers than the previous best model, we update the best model
+        if(len(inliers) > len(mostInliers)):
+            mostInliers = inliers
+            bestF = F
+    return bestF, mostInliers
+
+
+
+def task_d():
+    #Load the images
+    I1 = np.asarray(Image.open("data\desk\DSC02638.JPG").convert("L")).astype(np.float64) / 255
+    I2 = np.asarray(Image.open("data\desk\DSC02639.JPG").convert("L")).astype(np.float64) / 255
+
+    #Detect the corresponding points
+    pts1, pts2 = find_matches(I1, I2, 1)
+    correspondences = np.hstack((pts1,pts2))
+
+    #Perform RANSAC to find the best fundamental matrix
+    F, bestCorr = fundamental_ransac(correspondences)
+    
+    bestCorr = np.asarray(bestCorr)
+    pts1 = bestCorr[:,0:2]
+    pts2 = bestCorr[:,2:4]
+    #Transfrom the best points into homogeneous coordinates
+    h_pts1 = np.pad(pts1, ((0,0),(0,1)))
+    h_pts2 = np.pad(pts2, ((0,0),(0,1)))
+
+    #Compute the epipolar lines for each point
+    L2 = []
+    for row in h_pts1:
+        L2.append(np.dot(F, row))
+    L1 = []
+    for row in h_pts2:
+        L1.append(np.dot(F.T, row))
+
+    plt.figure(figsize=(10,6))
+    plt.subplot(1,2,1)
+    plt.imshow(I1, cmap="gray")
+    #Draw the epipolar lines
+    for line in L1:
+        a5_utils.draw_epiline(line, I1.shape[0], I1.shape[1])
+    #Plot the points
+    plt.plot(pts1[:,0], pts1[:,1], 'r.', markersize=10)
+
+    plt.subplot(1,2,2)
+    plt.imshow(I2, cmap="gray")
+    #Draw the epipolar lines
+    for line in L2:
+        a5_utils.draw_epiline(line, I2.shape[0], I2.shape[1])
+    #Plot the points
+    plt.plot(pts2[:,0], pts2[:,1], 'r.', markersize=10)
+
+    plt.show()
+
+
+
+
 # task_b()
 # task_c()
+
+task_d()
