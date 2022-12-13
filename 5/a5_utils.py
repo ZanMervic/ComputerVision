@@ -23,7 +23,7 @@ def draw_epiline(l,h,w):
 	x0, y0 = map(int, [0, -l[2]/l[1]])
 	x1, y1 = map(int, [w-1, -(l[2]+l[0]*w)/l[1]])
 
-	plt.plot([x0,x1],[y0,y1],'r')
+	plt.plot([x0,x1],[y0,y1],'r', linewidth=0.5)
 
 	plt.ylim([0,h])
 	plt.gca().invert_yaxis()

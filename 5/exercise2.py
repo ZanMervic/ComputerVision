@@ -152,7 +152,7 @@ def task_c():
 #TASK D--------------------------------------------------------------------------------------------------------------
 #Perform fully automatic fundamental matrix estimation on a pair of images
 
-def fundamental_ransac(correspondences, samples = 8, error = 2, iterations = 100):
+def fundamental_ransac(correspondences, samples = 8, error = 1, iterations = 1000):
     #Here we will sotre the largest number of inliers and the corresponding model
     mostInliers = []
     bestF = []
@@ -174,42 +174,8 @@ def fundamental_ransac(correspondences, samples = 8, error = 2, iterations = 100
         if(len(inliers) > len(mostInliers)):
             mostInliers = inliers
             bestF = F
-    return bestF, mostInliers
 
-
-def find_correspondences_symetric_snd_most_similar(desc1, desc2):
-    #For each descriptor from the first image we...
-    firstPairs = []
-    for i,desc in enumerate(desc1):
-        #calculate the hellinger distance between it and all descriptors from the second image
-        #(axis=1 tells the sum function to only sum elements on the axis 1 -> gives us a 1d array of sums -> we get an array of distances and not just 1 distance)
-        dist = np.sqrt(np.sum((np.sqrt(desc) - np.sqrt(desc2))**2, axis=1) / 2)
-        #we get the 2 smallest distances of descriptors (2 most similar descriptors)
-        fst_min_dist, snd_min_dist = np.partition(dist, 1)[:2]
-        #We check if the ration of these 2 distances is less than 0.8 (the smaller the ratio, the more distinctive the key-point is, which is what we want)
-        if(fst_min_dist/snd_min_dist < 0.8):
-            #we store the indexes of dest1 and dest2 descriptors whose distance was the smallest
-            firstPairs.append([i,np.where(dist == dist.min())[0][0]])
-
-    #Same for the second image we ...
-    secondPairs = []
-    for i,desc in enumerate(desc2):
-        #calculate the hellinger distance between it and all descriptors from the first image
-        #(axis=1 tells the sum function to only sum elements on the axis 1 -> gives us a 1d array of sums -> we get an array of distances and not just 1 distance)
-        dist = np.sqrt(np.sum((np.sqrt(desc) - np.sqrt(desc1))**2, axis=1) / 2)
-        #we get the 2 smallest distances of descriptors (2 most similar descriptors)
-        fst_min_dist, snd_min_dist = np.partition(dist, 1)[:2]
-        #We check if the ration of these 2 distances is less than 0.8 (the smaller the ratio, the more distinctive the key-point is, which is what we want)
-        if(fst_min_dist/snd_min_dist < 0.8):
-            #we store the indexes of dest1 and dest2 descriptors whose distance was the smallest
-            secondPairs.append([i,np.where(dist == dist.min())[0][0]])
-
-    #We now have pairs from first and second image
-    firstPairs = np.asarray(firstPairs)
-    secondPairs = np.flip(secondPairs, axis=1)
-    #We convert these arrays to sets, and keep only the matching pairs
-    pairs = np.array([x for x in set(tuple(x) for x in firstPairs) & set(tuple(x) for x in secondPairs)])
-    return pairs
+    return bestF, np.asarray(mostInliers)
 
 
 
@@ -217,7 +183,7 @@ def find_correspondences_symetric_snd_most_similar(desc1, desc2):
 def task_d():
     #Load the images
     I1 = cv2.cvtColor(cv2.imread("data\desk\DSC02638.JPG"), cv2.COLOR_BGR2GRAY)
-    I2 = cv2.cvtColor(cv2.imread("data\desk\DSC02641.JPG"), cv2.COLOR_BGR2GRAY)
+    I2 = cv2.cvtColor(cv2.imread("data\desk\DSC02640.JPG"), cv2.COLOR_BGR2GRAY)
 
     #Find correspondences using cv2
     orb = cv2.ORB_create()
@@ -261,7 +227,10 @@ def task_d():
 
     correspondences = np.hstack((pts1,pts2))
     
-    F, _ = fundamental_ransac(correspondences)
+    F, corr = fundamental_ransac(correspondences)
+
+    pts1 = np.asarray(corr[:,:2])
+    pts2 = np.asarray(corr[:,2:4])
 
     #Transfrom the points into homogeneous coordinates
     h_pts1 = np.hstack((pts1, np.ones((pts1.shape[0],1))))
