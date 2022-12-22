@@ -1,8 +1,6 @@
 from matplotlib import pyplot as plt
 import a6_utils
 import numpy as np
-from PIL import Image
-import cv2
 
 
 # Task A ----------------------------------------------------------------------------------------------------
@@ -17,7 +15,6 @@ import cv2
 
 # Task B ----------------------------------------------------------------------------------------------------
 
-#points == the X matrix from instructions (look at your paper for more understanding)
 def pca(X):
     #We get the matrix shape
     m, N = X.shape
