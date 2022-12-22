@@ -183,7 +183,7 @@ def fundamental_ransac(correspondences, samples = 8, error = 1, iterations = 100
 def task_d():
     #Load the images
     I1 = cv2.cvtColor(cv2.imread("data\desk\DSC02638.JPG"), cv2.COLOR_BGR2GRAY)
-    I2 = cv2.cvtColor(cv2.imread("data\desk\DSC02640.JPG"), cv2.COLOR_BGR2GRAY)
+    I2 = cv2.cvtColor(cv2.imread("data\desk\DSC02639.JPG"), cv2.COLOR_BGR2GRAY)
 
     #Find correspondences using cv2
     orb = cv2.ORB_create()
@@ -272,5 +272,4 @@ def task_d():
 
 # task_b()
 # task_c()
-
-task_d()
+# task_d()

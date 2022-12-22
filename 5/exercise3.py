@@ -59,15 +59,21 @@ def task_a():
     ax = fig.add_subplot(1, 3, 1)
     ax.imshow(I1, cmap="gray")
     ax.plot(corr[:,0], corr[:,1], 'r.', markersize=5)
+    for i in range(0, corr[:,0].shape[0]):
+        plt.text(corr[i,0], corr[i,1], i+1)
 
     # Second subplot
     ax = fig.add_subplot(1, 3, 2)
     ax.imshow(I2, cmap="gray")
     ax.plot(corr[:,2], corr[:,3], 'r.', markersize=5)
+    for i in range(0, corr[:,2].shape[0]):
+        plt.text(corr[i,2], corr[i,3], i+1)
 
     # Third subplot (3d)
     ax = fig.add_subplot(1, 3, 3, projection='3d')
     ax.plot(points3D[:,0],points3D[:,1],points3D[:,2],  "r.", markersize=5)
+    for i in range(0, points3D[:,0].shape[0]):
+        ax.text(points3D[i,0], points3D[i,1], points3D[i,2], i+1)
 
     plt.show()
 
