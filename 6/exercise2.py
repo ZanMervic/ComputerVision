@@ -23,7 +23,7 @@ def dualPca(X):
 
 def task_a():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     C, mean, U, S, _ = dualPca(X)
     U
@@ -39,7 +39,7 @@ def task_a():
 
 def task_b():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     C, mean, U, S, _ = dualPca(X)
 

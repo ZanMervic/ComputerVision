@@ -33,7 +33,7 @@ def pca(X):
 
 def task_b():
     #Read the points file
-    X = np.loadtxt("6\data\points.txt")
+    X = np.loadtxt("data\points.txt")
     #Reshape it so it becomes a 2xN matrix
     X = X.reshape(-1,2).T
     C, mean, _, _, _ = pca(X)
@@ -53,7 +53,7 @@ def task_b():
 # Task C ----------------------------------------------------------------------------------------------------
 def task_c():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     C, mean, U, S, _ = pca(X)
     #We plot the points and draw the elipse
@@ -78,7 +78,7 @@ def task_c():
 
 def task_d():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     _, _, _, S, _ = pca(X)
     #We plot the eigenvalues using the bar plot
@@ -102,7 +102,7 @@ def task_d():
 
 def task_e():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     C, mean, U, S, _ = pca(X)
 
@@ -138,7 +138,7 @@ def task_e():
 
 def task_f():
     #Read the points file and reshape it so it becomes a 2xN matrix
-    X = np.loadtxt("6\data\points.txt").reshape(-1,2).T
+    X = np.loadtxt("data\points.txt").reshape(-1,2).T
     #Get the covariance matrix, the mean value, the eigenvectors and the eigenvalues
     C, mean, U, S, _ = pca(X)
 

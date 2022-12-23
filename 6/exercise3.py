@@ -31,7 +31,7 @@ def dualPca(X):
 
 # Task A ----------------------------------------------------------------------------------------------------
 
-def preparation(path="6/data/faces/1"):
+def preparation(path="data/faces/1"):
     img_names = listdir(path)
     images = []
 
@@ -67,28 +67,39 @@ def task_b():
     plt.show()
 
     #We get the image of a face
-    image = cv2.cvtColor(cv2.imread("6/data/faces/1/001.png"), cv2.COLOR_RGB2GRAY)
-    #Convert the image to a vector
-    X = np.reshape(image, (-1,1))
+    image = cv2.cvtColor(cv2.imread("data/faces/1/001.png"), cv2.COLOR_RGB2GRAY)
     
+    #IMAGE 1
+    #Convert the image to a vector
+    X_1 = np.reshape(np.copy(image), (-1,1))
     #project the points in the PCA space
-    X_pca = np.dot(U.T, X - mean)
+    X_1 = np.dot(U.T, X_1 - mean)
     #We project the points back to the original space
-    X_new = np.dot(U, X_pca) + mean
+    X_1 = np.dot(U, X_1) + mean
+    image_1 = np.reshape(X_1, image.shape)
 
-    #We get the first image which was just converted to PCA space and back
-    image_1 = np.reshape(X_new, image.shape)
+    #IMAGE 2
+    #Convert the image to a vector
+    X_2 = np.reshape(np.copy(image), (-1,1))
+    #Change 1 compontnt to 0
+    X_2[4074] = 0
+    #project the points in the PCA space
+    X_2 = np.dot(U.T, X_2 - mean)
+    #We project the points back to the original space
+    X_2 = np.dot(U, X_2) + mean
+    image_2 = np.reshape(X_2, image.shape)
 
-    #We get the second image which was converted to PCA space and back + had 1 component set to 0
-    image_2 = np.copy(X_new)
-    image_2[4074] = 0
-    image_2 = np.reshape(image_2, image.shape)
-
-    #We get the third image while changing the vector while in PCA space
-    X_pca[4] = 0
-    #Convert the changed vector back from PCA space
-    X_new = np.dot(U, X_pca) + mean
-    image_3 = np.reshape(X_new, image.shape)
+    #IMAGE 3
+    #Convert the image to a vector
+    X_3 = np.reshape(np.copy(image), (-1,1))
+    #project the points in the PCA space
+    X_3 = np.dot(U.T, X_3 - mean)
+    #change one of its componenets while in PCA space
+    X_3[4] = 0
+    #We project the points back to the original space
+    X_3 = np.dot(U, X_3) + mean
+    image_3 = np.reshape(X_3, image.shape)
+    
 
     plt.subplot(3, 3, 1)
     plt.imshow(image, cmap="gray")
@@ -104,7 +115,7 @@ def task_b():
     plt.title(f'Original image')
     plt.subplot(3, 3, 5)
     plt.imshow(image_2, cmap="gray")
-    plt.title(f'Converted to PCA and back (1 component set to 0)')
+    plt.title(f'1 component set to 0 and converted to PCA and back')
     plt.subplot(3, 3, 6)
     plt.imshow(image - image_2)
 
@@ -113,7 +124,7 @@ def task_b():
     plt.title(f'Original image')
     plt.subplot(3, 3, 8)
     plt.imshow(image_3, cmap="gray")
-    plt.title(f'Converted to PCA (1 component set to 0) and back')
+    plt.title(f'Converted to PCA had 1 component set to 0 and back')
     plt.subplot(3, 3, 9)
     plt.imshow(image - image_3)
 
@@ -139,7 +150,7 @@ def task_c():
     C, mean, U, S, VT = dualPca(images)
 
     #We get the image of a face
-    image = cv2.cvtColor(cv2.imread("6/data/faces/1/001.png"), cv2.COLOR_RGB2GRAY)
+    image = cv2.cvtColor(cv2.imread("data/faces/1/001.png"), cv2.COLOR_RGB2GRAY)
     #Convert the image to a vector
     X = np.reshape(image, (-1,1))
 
@@ -163,4 +174,4 @@ def task_c():
 
 
 task_b()
-task_c()
+# task_c()
