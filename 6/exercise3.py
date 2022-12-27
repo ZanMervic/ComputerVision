@@ -1,6 +1,6 @@
 from os import listdir
 from matplotlib import pyplot as plt
-import a6_utils
+import matplotlib.animation
 import numpy as np
 from PIL import Image
 import cv2
@@ -173,5 +173,139 @@ def task_c():
 # ------------------------------------------------------------------------------------------------------------
 
 
-task_b()
+
+
+
+
+# Task d -----------------------------------------------------------------------------------------------------
+#explanation https://discord.com/channels/435483352011767820/626489670787923972/1056989938807230494
+def task_d():
+    images = preparation("data/faces/2")
+    C, mean, U, S, VT = dualPca(images)
+
+    #We get the average photo, which we get by using the mean() function on our images
+    avg_img = np.reshape(images.mean(axis=1), (-1,1))
+    plt.imshow(avg_img.reshape((96,84)), cmap="gray")
+    plt.show()
+
+    #We project this average face to PCA space
+    avg_pca = np.dot(U.T, avg_img - mean)
+    
+    #We look how the 2.eigenvector looks
+    snd_egn = U[:,1]
+    plt.imshow(snd_egn.reshape((96,84)), cmap="gray")
+    plt.show()
+
+    #We create a range from around -10 to 10 and define the scailing factor
+    range = np.linspace(-3*np.pi, 3*np.pi, 200)
+    scale = 3000
+
+    fig, ax = plt.subplots()
+    
+    def anim_func(i):
+        #For each range we multiply the eigenvector with the range and multiply with the scare to exagerate the results
+        avg_pca[1] = np.sin(range[i]) * scale
+        #We convert the face back to image space
+        avg_pca_img = np.dot(U, avg_pca) + mean
+        #We plot the image
+        ax.imshow(avg_pca_img.reshape((96, 84)), cmap="gray", vmin=0, vmax=255)
+
+
+    #Because the eigenvector for which we are changing the weight looks as it looks, we can see one side of the face 
+    #getting darker when we apply more and more weight of that vector
+    #In PCA space, our image gets converted to an array of 64, that represents the weights for our 64 eigenvectors
+    #the first few vectors represent broader features, the latter represent the details
+    animation = matplotlib.animation.FuncAnimation(fig, anim_func, frames=len(range))
+    animation.resume()
+    plt.show()
+
+# -------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+#Task e -------------------------------------------------------------------------------------------------------------------
+
+def task_e():
+    images = preparation("data/faces/1")
+    #We use the face images in the dualPca function
+    C, mean, U, S, VT = dualPca(images)
+
+    #We load the elephant image
+    image = cv2.cvtColor(cv2.imread("data/elephant.jpg"), cv2.COLOR_RGB2GRAY)
+    X = np.reshape(image, (-1,1))
+
+    #We send the elephant image to the PCA space built by face images and back
+    X_pca = np.dot(U.T, X - mean)
+    #We project the points back to the original space
+    X = np.dot(U, X_pca) + mean
+    #It will try to build the elephant image back using only the eigenvectors from the faces which is not possible
+
+    plt.figure(figsize=(10,6))
+    plt.subplot(1,2,1)
+    plt.imshow(image, cmap="gray")
+    plt.subplot(1,2,2)
+    plt.imshow(np.reshape(X, (96,84)), cmap="gray")
+    plt.show()
+
+# -------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+#Task g -------------------------------------------------------------------------------------------------------------------
+
+#X input images in columns, arranged by classes
+#c number of classes
+#n number of images per class
+def lda(X, c, n):
+    SB = np.zeros((X.shape[0], X.shape[0])) # between class scatter
+    SW = np.zeros((X.shape[0], X.shape[0])) # within class scatter
+    MM = np.mean(X, axis=0)
+    Ms = np.zeros((X.shape[0], c))
+    for i in range(1, c):
+        Ms[:,i] = np.mean(X[:, (i-1)*n+1 : i*n], axis=1)
+        SB = SB + n * np.dot((Ms[:,[i]] - MM),(Ms[:,[i]] - MM).T)
+        for j in range(1,n):
+            SW = SW + np.dot((X[:, [i*n+j]] - Ms[:,[i]]), (X[:, [i*n+j]] - Ms[:,[i]]).T)
+
+    #https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html
+    W, V = np.linalg.eig(np.linalg.inv(SW) @ SB)
+    return np.dot(W, Ms), MM
+
+def task_g():
+    images1 = preparation("data/faces/1")
+    images2 = preparation("data/faces/2")
+    images3 = preparation("data/faces/3")
+    combined = np.concatenate((images1, images2, images3), axis=1) / 256
+
+    C, mean, U, S, VT = dualPca(combined)
+    combined_pca = np.dot(U.T, combined - mean)
+    # plt.scatter(combined_pca[0], combined_pca[1], c=['r']*64 + ['g']*64 + ['b']*64 )
+    # plt.show()
+
+    X = combined_pca[:30]
+    V, MM = lda(X, 3, 64)
+    combined_lda = np.dot(V.T, (X-MM))
+
+    colors = ['c']*64 + ['m']*64 + ['y']*64
+
+    plt.figure(figsize=(10,6))
+    plt.subplot(1,2,1)
+    plt.scatter(-combined_pca[0], -combined_pca[1], c=colors )
+    plt.subplot(1,2,2)
+    plt.scatter(-combined_lda[0], -combined_lda[1], c=colors )
+    plt.show()
+
+task_g()
+
+
+# task_b()
 # task_c()
+# task_d()
+# task_e()
