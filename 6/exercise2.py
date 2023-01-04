@@ -1,8 +1,5 @@
 from matplotlib import pyplot as plt
-import a6_utils
 import numpy as np
-from PIL import Image
-import cv2
 
 # Task A ----------------------------------------------------------------------------------------------------	
 

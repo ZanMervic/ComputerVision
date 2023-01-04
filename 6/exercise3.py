@@ -2,7 +2,6 @@ from os import listdir
 from matplotlib import pyplot as plt
 import matplotlib.animation
 import numpy as np
-from PIL import Image
 import cv2
 
 
@@ -302,7 +301,7 @@ def task_g():
     plt.scatter(-combined_lda[0], -combined_lda[1], c=colors )
     plt.show()
 
-task_g()
+# task_g()
 
 
 # task_b()
