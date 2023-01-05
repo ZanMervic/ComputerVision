@@ -209,6 +209,15 @@ def task_d():
         #We plot the image
         ax.imshow(avg_pca_img.reshape((96, 84)), cmap="gray", vmin=0, vmax=255)
 
+    def anim_func2(i):
+        #For each range we multiply the eigenvector with the range and multiply with the scare to exagerate the results
+        avg_pca[1] = np.sin(range[i]) * scale
+        avg_pca[2] = np.cos(range[i]) * scale
+        #We convert the face back to image space
+        avg_pca_img = np.dot(U, avg_pca) + mean
+        #We plot the image
+        ax.imshow(avg_pca_img.reshape((96, 84)), cmap="gray", vmin=0, vmax=255)
+
 
     #Because the eigenvector for which we are changing the weight looks as it looks, we can see one side of the face 
     #getting darker when we apply more and more weight of that vector
@@ -216,6 +225,9 @@ def task_d():
     #the first few vectors represent broader features, the latter represent the details
     animation = matplotlib.animation.FuncAnimation(fig, anim_func, frames=len(range))
     animation.resume()
+
+    # animation = matplotlib.animation.FuncAnimation(fig, anim_func2, frames=len(range))
+    # animation.resume()
     plt.show()
 
 # -------------------------------------------------------------------------------------------------------------------------
@@ -301,10 +313,11 @@ def task_g():
     plt.scatter(-combined_lda[0], -combined_lda[1], c=colors )
     plt.show()
 
+
 # task_g()
 
 
 # task_b()
 # task_c()
-# task_d()
+task_d()
 # task_e()
